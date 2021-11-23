@@ -14,6 +14,8 @@ jobs:
       image: quay.io/osbuild/fedora-bot:latest
 
     steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
       - name: Check for new releases
         run: python3 fedora_bot.py -u imagebuilder-bot -p "${{ secrets.FEDORA_PASSWORD }}"
         shell: bash
