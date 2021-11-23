@@ -2,6 +2,7 @@
 name: "Fedora Koji and Bodhi bot"
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '*/15 * * * *'
 
