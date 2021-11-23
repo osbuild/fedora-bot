@@ -1,0 +1,15 @@
+# Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
+name: "Fedora Koji and Bodhi bot"
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+
+jobs:
+  release:
+    runs-on: quay.io/osbuild/fedora-bot:latest
+
+    steps:
+      - name: Check for new releases
+        run: python3 fedora_bot.py -u imagebuilder-bot -p "${{ secrets.FEDORA_PASSWORD }}"
+        shell: bash
