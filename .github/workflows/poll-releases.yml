@@ -1,5 +1,5 @@
 # Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
-name: "Fedora Koji and Bodhi bot"
+name: "Fedora bot"
 
 on:
   workflow_dispatch:
@@ -7,7 +7,8 @@ on:
     - cron: '*/15 * * * *'
 
 jobs:
-  release:
+  check:
+    name: Check for new releases
     runs-on: ubuntu-latest
 
     container:
