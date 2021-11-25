@@ -237,6 +237,4 @@ def main():
         else:
             msg_ok("No releases found with missing builds. Exiting.")
 
-
-if __name__ == "__main__":
-    main()
+    return 0
