@@ -83,7 +83,7 @@ def update_bodhi(args,component,fedora):
 
     child.wait()
     child.read()
-    res = str(child.before)
+    res = str(child.before, 'UTF-8')
     print(res)
     if "completed successfully" in res:
         msg_ok(f"Bodhi updated for {fedora}.")
