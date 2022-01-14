@@ -9,6 +9,7 @@ import os
 import re
 import pexpect
 import requests
+from slack_sdk.webhook import WebhookClient
 
 
 class fg:  # pylint: disable=too-few-public-methods
@@ -70,6 +71,19 @@ def kinit(args):
     msg_info(f"Currently valid Kerberos tickets:\n{res}")
 
 
+def slack_notify(message: str):
+    url = os.getenv('SLACK_WEBHOOK_URL')
+    gitlab_url = os.getenv('CI_JOB_URL')
+
+    msg_ok(message)
+
+    webhook = WebhookClient(url)
+
+    response = webhook.send(text=f'<{gitlab_url}|centos-bot>: {message}')
+    assert response.status_code == 200
+    assert response.body == "ok"
+
+
 def update_bodhi(args,component,fedora):
     msg_info(f"Updating bodhi for Fedora {fedora}...")
     child = pexpect.spawn("fedpkg update --type enhancement "
@@ -86,7 +100,7 @@ def update_bodhi(args,component,fedora):
     res = str(child.before, 'UTF-8')
     print(res)
     if "completed successfully" in res:
-        msg_ok(f"Bodhi updated for {fedora}.")
+        slack_notify(f"Bodhi updated for {fedora}.")
 
 
 def schedule_fedora_builds(args,component,fedoras,missing_updates):
@@ -115,7 +129,7 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
         print(res)
 
         if "completed successfully" in res:
-            msg_ok(f"Build for {fedora} done.")
+            slack_notify(f"<{url}|Koji build> for {fedora} completed successfully.")
 
             if fedora != "rawhide":
                 update_bodhi(args,component,fedora)
