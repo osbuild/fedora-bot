@@ -73,13 +73,13 @@ def kinit(args):
 
 def slack_notify(message: str):
     url = os.getenv('SLACK_WEBHOOK_URL')
-    gitlab_url = os.getenv('CI_JOB_URL')
+    github_action = os.getenv('GITHUB_ACTION')
 
     msg_ok(message)
 
     webhook = WebhookClient(url)
 
-    response = webhook.send(text=f'<{gitlab_url}|centos-bot>: {message}')
+    response = webhook.send(text=f'<{github_action}|fedora-bot>: {message}')
     assert response.status_code == 200
     assert response.body == "ok"
 
