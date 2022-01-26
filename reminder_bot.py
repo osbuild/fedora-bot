@@ -50,7 +50,7 @@ def slack_notify(message: str):
     github_run_id = os.getenv('GITHUB_RUN_ID')
     github_url = f"{github_server_url}/{github_repository}/actions/runs/{github_run_id}"
 
-    print(f"msg: {message}\ngithub: {github_url}")
+    print(message)
 
     webhook = WebhookClient(url)
 
@@ -66,7 +66,7 @@ def send_reminder(components, target_date, message: str):
             if (target_date == date.today().month and target_date == release_date.month):
                     slack_notify(f"{release_date}: {component} release by {foreperson}")
             elif release_date == target_date:
-                slack_notify(f'{message} {component} release {release_date} by {foreperson}')
+                slack_notify(f'{message} <https://github.com/osbuild/{component}/releases|{component} release> by {foreperson}')
 
 
 if __name__ == "__main__":
@@ -86,7 +86,8 @@ if __name__ == "__main__":
         create_yearly_plan(components, int(args.year))
 
     if args.reminder is True:
-        message = ":loudspeaker: This week we have scheduled an"
+        wednesday = date.today() - timedelta(days=2)
+        message = f":loudspeaker: This Wednesday ({wednesday}) we have scheduled an"
         send_reminder(components, date.today() + timedelta(days=2), message) # send reminder on Monday before the release
         message = ":loudspeaker: Today we have scheduled an"
         send_reminder(components, date.today(), message)                     # send a reminder on the release day
