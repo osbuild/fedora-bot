@@ -1,0 +1,25 @@
+# Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
+name: "Fedora bot"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'
+
+jobs:
+  check:
+    name: Remind forepeople
+    runs-on: ubuntu-latest
+
+    container:
+      image: quay.io/osbuild/fedora-bot:latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Check for pending reminders
+        run: python3 reminder_bot.py -r
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
+          GITHUB_ACTION: "{{ env.$GITHUB_SERVER_URL/env.$GITHUB_REPOSITORY/actions/runs/env.$GITHUB_RUN_ID }}"
