@@ -37,7 +37,7 @@ def release_schedule(component: str):
         with open(filename,'r') as file:
             release_dates = yaml.load(file, Loader=yaml.FullLoader)
     else:
-        print(f"Error. The {filename} was not found. Please create it first.")
+        print(f"Error. The {filename} was not found. Please create it first by running 'python3 reminder_bot.py --year'.")
         sys.exit(1)
 
     return release_dates
@@ -52,18 +52,20 @@ def slack_notify(message: str):
 
     print(f"msg: {message}\ngithub: {github_url}")
 
-    #webhook = WebhookClient(url)
+    webhook = WebhookClient(url)
 
-    #response = webhook.send(text=f'<{github_url}|reminder-bot>: :loudspeaker: {message}')
-    #assert response.status_code == 200
-    #assert response.body == "ok"
+    response = webhook.send(text=f'<{github_url}|reminder-bot>: {message}')
+    assert response.status_code == 200
+    assert response.body == "ok"
 
 
 def send_reminder(components, target_date, message: str):
     for component in components:
         releases = release_schedule(component)
         for release_date, foreperson in releases.items():
-            if release_date == target_date:
+            if (target_date == date.today().month and target_date == release_date.month):
+                    slack_notify(f"{release_date}: {component} release by {foreperson}")
+            elif release_date == target_date:
                 slack_notify(f'{message} {component} release {release_date} by {foreperson}')
 
 
@@ -84,11 +86,11 @@ if __name__ == "__main__":
         create_yearly_plan(components, int(args.year))
 
     if args.reminder is True:
-        message = "This week we have scheduled an"
+        message = ":loudspeaker: This week we have scheduled an"
         send_reminder(components, date.today() + timedelta(days=2), message) # send reminder on Monday before the release
-        message = "Today we have scheduled an"
+        message = ":loudspeaker: Today we have scheduled an"
         send_reminder(components, date.today(), message)                     # send a reminder on the release day
 
     if args.monthly is True:
-        message = "This month the following team members have signed up as forepeople :tada:"
-        send_reminder(components, date.today(), message)                     # send an overview on the first of the month
+        slack_notify("This month the following team members have signed up as forepeople :tada:")
+        send_reminder(components, date.today().month, None)                  # send an overview on the first of the month

@@ -5,10 +5,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * *'
+    - cron: '0 8 1 * *'
 
 jobs:
-  check:
-    name: Remind forepeople
+  weekly:
+    if: github.event.schedule != '0 8 1 * *'
+    name: Daily and weekly reminders
     runs-on: ubuntu-latest
 
     container:
@@ -19,6 +21,22 @@ jobs:
         uses: actions/checkout@v2
       - name: Check for pending reminders
         run: python3 reminder_bot.py -r
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
+  monthly:
+    if: contains(github.event.schedule, '0 8 1 * *')
+    name: Monthly reminder
+    runs-on: ubuntu-latest
+
+    container:
+      image: quay.io/osbuild/fedora-bot:latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Check for pending reminders
+        run: python3 reminder_bot.py -m
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
