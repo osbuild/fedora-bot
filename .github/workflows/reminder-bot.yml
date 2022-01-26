@@ -1,5 +1,5 @@
 # Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
-name: "Fedora bot"
+name: "Reminder bot"
 
 on:
   workflow_dispatch:
