@@ -45,9 +45,11 @@ def release_schedule(component: str):
 
 def slack_notify(message: str):
     url = os.getenv('SLACK_WEBHOOK_URL')
-    github_url = os.getenv('GITHUB_ACTION')
+    github_server_url = os.getenv('GITHUB_SERVER_URL')
+    github_repository = os.getenv('GITHUB_REPOSITORY')
+    github_run_id = os.getenv('GITHUB_RUN_ID')
 
-    print(f"msg: {message}\ngithub: {github_url}")
+    print(f"msg: {message}\ngithub: {github_server_url}/{github_repository}/actions/runs/{github_run_id}")
 
     webhook = WebhookClient(url)
 
@@ -61,7 +63,7 @@ def send_reminder(components, target_date, message: str):
         releases = release_schedule(component)
         for release_date, foreperson in releases.items():
             if release_date == target_date:
-                slack_notify(f'{message} {component} release {release_date} by {foreperson}')
+                print(f'{message} {component} release {release_date} by {foreperson}')
 
 
 if __name__ == "__main__":
