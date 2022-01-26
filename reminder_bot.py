@@ -61,7 +61,7 @@ def send_reminder(components, target_date, message: str):
         releases = release_schedule(component)
         for release_date, foreperson in releases.items():
             if release_date == target_date:
-                print(f'{message} {component} release {release_date} by {foreperson}')
+                slack_notify(f'{message} {component} release {release_date} by {foreperson}')
 
 
 if __name__ == "__main__":
