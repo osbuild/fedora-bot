@@ -22,4 +22,3 @@ jobs:
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
-          GITHUB_ACTION: "{{ $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID }}"

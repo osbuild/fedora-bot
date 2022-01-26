@@ -48,14 +48,15 @@ def slack_notify(message: str):
     github_server_url = os.getenv('GITHUB_SERVER_URL')
     github_repository = os.getenv('GITHUB_REPOSITORY')
     github_run_id = os.getenv('GITHUB_RUN_ID')
+    github_url = f"{github_server_url}/{github_repository}/actions/runs/{github_run_id}"
 
-    print(f"msg: {message}\ngithub: {github_server_url}/{github_repository}/actions/runs/{github_run_id}")
+    print(f"msg: {message}\ngithub: {github_url}")
 
-    webhook = WebhookClient(url)
+    #webhook = WebhookClient(url)
 
-    response = webhook.send(text=f'<{github_url}|reminder-bot>: :loudspeaker: {message}')
-    assert response.status_code == 200
-    assert response.body == "ok"
+    #response = webhook.send(text=f'<{github_url}|reminder-bot>: :loudspeaker: {message}')
+    #assert response.status_code == 200
+    #assert response.body == "ok"
 
 
 def send_reminder(components, target_date, message: str):
@@ -63,7 +64,7 @@ def send_reminder(components, target_date, message: str):
         releases = release_schedule(component)
         for release_date, foreperson in releases.items():
             if release_date == target_date:
-                print(f'{message} {component} release {release_date} by {foreperson}')
+                slack_notify(f'{message} {component} release {release_date} by {foreperson}')
 
 
 if __name__ == "__main__":
