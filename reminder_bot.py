@@ -54,7 +54,17 @@ def slack_notify(message: str):
 
     webhook = WebhookClient(url)
 
-    response = webhook.send(text=f'<{github_url}|reminder-bot>: {message}')
+    response = webhook.send(
+        text="fallback",
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"<{github_url}|reminder-bot>: {message}"
+                }
+            }
+        ])
     assert response.status_code == 200
     assert response.body == "ok"
 
@@ -66,7 +76,13 @@ def send_reminder(components, target_date, message: str):
             if (target_date == date.today().month and target_date == release_date.month):
                     slack_notify(f"{release_date}: {component} release by {foreperson}")
             elif release_date == target_date:
-                slack_notify(f'{message} <https://github.com/osbuild/{component}/releases|{component} release> by {foreperson}')
+                dev_guide = "https://www.osbuild.org/guides/developer-guide/releasing.html"
+                internal_guide = "https://osbuild.pages.redhat.com/internal-guides/releasing.html"
+                instructions = (f"*1.* Create an upstream release (<{dev_guide}|read the docs>)\n"
+                                f"*2.* Watch this channel for the CS9/RHEL9 merge requests (<{internal_guide}|read the docs>)\n"
+                                "*3.* Once everything is green, merge the CS9 merge request and watch this channel for the RHEL8 pull request.\n"
+                                "In between, either enjoy the update messages from Koji, Bodhi and Brew or have some :popcorn:")
+                slack_notify(f'{message} <https://github.com/osbuild/{component}/releases|{component} release> by {foreperson}\n{instructions}')
 
 
 if __name__ == "__main__":
@@ -89,7 +105,7 @@ if __name__ == "__main__":
         wednesday = date.today() - timedelta(days=2)
         message = f":loudspeaker: This Wednesday ({wednesday}) we have scheduled an"
         send_reminder(components, date.today() + timedelta(days=2), message) # send reminder on Monday before the release
-        message = ":loudspeaker: Today we have scheduled an"
+        message = ":loudspeaker: *Today* we have scheduled an"
         send_reminder(components, date.today(), message)                     # send a reminder on the release day
 
     if args.monthly is True:
