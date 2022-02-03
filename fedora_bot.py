@@ -138,10 +138,10 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
         if "completed successfully" in res:
             slack_notify(f"<{url}|Koji build> for *Fedora {fedora}* completed successfully. :meow_checkmark:")
 
-            if fedora != "rawhide":
+            if branch != "rawhide":
                 update_bodhi(args,component,fedora)
         elif fedora in missing_updates:
-            if fedora != "rawhide":
+            if branch != "rawhide":
                 update_bodhi(args,component,fedora)
         else:
             msg_info(f"Did not build Fedora {fedora}.")
