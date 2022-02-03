@@ -82,7 +82,7 @@ def slack_notify(message: str):
 
     webhook = WebhookClient(url)
 
-    response = webhook.send(text=f'<{github_url}|fedora-bot>: {message}')
+    response = webhook.send(text=f'<{github_url}|fedora-bot>: :fedora-new: {message}')
     assert response.status_code == 200
     assert response.body == "ok"
 
@@ -132,7 +132,7 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
         print(res)
 
         if "completed successfully" in res:
-            slack_notify(f"<{url}|Koji build> for {fedora} completed successfully.")
+            slack_notify(f"<{url}|Koji build> for *Fedora {fedora}* completed successfully. :meow_checkmark:")
 
             if fedora != "rawhide":
                 update_bodhi(args,component,fedora)
@@ -140,7 +140,7 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
             if fedora != "rawhide":
                 update_bodhi(args,component,fedora)
         else:
-            msg_info(f"Did not build {fedora}.")
+            msg_info(f"Did not build Fedora {fedora}.")
             continue
 
     msg_info(f"Check {url} for all {component} builds.")
