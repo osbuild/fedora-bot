@@ -102,8 +102,12 @@ def update_bodhi(args,component,fedora):
     child.read()
     res = str(child.before, 'UTF-8')
     print(res)
-    if "completed successfully" in res:
-        slack_notify(f"Bodhi updated for {fedora}.")
+    if "update has been submitted" in res:
+        url = ""
+        for line in res.split("\n"):
+            if "https://bodhi.fedoraproject.org" in line:
+                url = line.strip()
+        slack_notify(f"<{url}|Bodhi update published> for *Fedora {fedora}*. :meow_checkmark:")
 
 
 def schedule_fedora_builds(args,component,fedoras,missing_updates):
