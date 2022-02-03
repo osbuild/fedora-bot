@@ -82,7 +82,17 @@ def slack_notify(message: str):
 
     webhook = WebhookClient(url)
 
-    response = webhook.send(text=f'<{github_url}|fedora-bot>: :fedora-new: {message}')
+    response = webhook.send(
+        text="fallback",
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"<{github_url}|fedora-bot>: :fedora-new: {message}"
+                }
+            }
+        ])
     assert response.status_code == 200
     assert response.body == "ok"
 
@@ -107,7 +117,7 @@ def update_bodhi(args,component,fedora):
         for line in res.split("\n"):
             if "https://bodhi.fedoraproject.org" in line:
                 url = line.strip()
-        slack_notify(f"<{url}|Bodhi update published> for *Fedora {fedora}*. :meow_checkmark:")
+        slack_notify(f"<{url}|Bodhi update published> for *Fedora {fedora}*. :meow_checkmark:\nThis means the *release for Fedora {fedora} is complete*. :tada:")
 
 
 def schedule_fedora_builds(args,component,fedoras,missing_updates):
