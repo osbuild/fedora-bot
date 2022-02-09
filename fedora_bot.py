@@ -123,17 +123,15 @@ def update_bodhi(args,component,fedora):
 def schedule_fedora_builds(args,component,fedoras,missing_updates):
     """Schedule builds for all active Fedora releases with missing builds"""
 
-    if component == "osbuild":
-        url = "https://koji.fedoraproject.org/koji/packageinfo?packageID=29756"
-    elif component == "osbuild-composer":
-        url = "https://koji.fedoraproject.org/koji/packageinfo?packageID=31032"
+    kojis = { "osbuild": "https://koji.fedoraproject.org/koji/packageinfo?packageID=29756",
+              "osbuild-composer": "https://koji.fedoraproject.org/koji/packageinfo?packageID=31032" }
+    msg_info(f"Check {kojis[component]} for all {component} builds.")
 
     work_dir = os.getcwd()
 
     os.chdir(os.path.join(work_dir, component))
 
     for fedora in fedoras:
-        path = os.getcwd()
         msg_info(f"Scheduling build for Fedora {fedora} (this may take a while)")
         if fedora == '36':
             branch = "rawhide"
@@ -146,6 +144,11 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
         print(res)
 
         if "completed successfully" in res:
+            for line in res.split("\n"):
+                if "https://koji.fedoraproject.org" in line:
+                    url = line.strip("Task info: ")
+            if not url:
+                url = kojis[component]
             slack_notify(f"<{url}|Koji build> for *Fedora {fedora}* completed successfully. :meow_checkmark:")
 
             if branch != "rawhide":
@@ -156,8 +159,6 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
         else:
             msg_info(f"Did not build Fedora {fedora}.")
             continue
-
-    msg_info(f"Check {url} for all {component} builds.")
 
 
 def get_latest_dist_git_release(component):
