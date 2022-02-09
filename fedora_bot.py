@@ -133,7 +133,7 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
 
     for fedora in fedoras:
         msg_info(f"Scheduling build for Fedora {fedora} (this may take a while)")
-        if fedora == '36':
+        if fedora == '37':
             branch = "rawhide"
         else:
             branch = f"f{fedora}"
