@@ -70,11 +70,12 @@ def slack_notify(message: str):
 
 
 def send_reminder(components, target_date, message: str):
+    overview = []
+
     for component in components:
         releases = release_schedule(component)
-        for release_date, foreperson in releases.items():
-            overview = []
 
+        for release_date, foreperson in releases.items():
             if (target_date == date.today().month and target_date == release_date.month):
                 overview.append(f"{release_date}: {component} release by {foreperson}\n")
             elif release_date == target_date:
@@ -86,9 +87,9 @@ def send_reminder(components, target_date, message: str):
                                 "In between, either enjoy the update messages from Koji, Bodhi and Brew or have some :popcorn:")
                 slack_notify(f'{message} <https://github.com/osbuild/{component}/releases|{component} release> by {foreperson}\n{instructions}')
 
-            if overview:
-                overview.sort()
-                slack_notify(f"{message}\n{'\n'.join(overview)}")
+    if overview:
+        overview.sort()
+        slack_notify(f"{message}\n{''.join(overview)}")
 
 
 if __name__ == "__main__":
