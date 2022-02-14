@@ -124,7 +124,8 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
     """Schedule builds for all active Fedora releases with missing builds"""
 
     kojis = { "osbuild": "https://koji.fedoraproject.org/koji/packageinfo?packageID=29756",
-              "osbuild-composer": "https://koji.fedoraproject.org/koji/packageinfo?packageID=31032" }
+              "osbuild-composer": "https://koji.fedoraproject.org/koji/packageinfo?packageID=31032",
+              "koji-osbuild": "https://koji.fedoraproject.org/koji/packageinfo?packageID=32748" }
     msg_info(f"Check {kojis[component]} for all {component} builds.")
 
     work_dir = os.getcwd()
@@ -247,7 +248,7 @@ def get_fedora_releases():
 
 def main():
     """Main function"""
-    components = ['osbuild','osbuild-composer']
+    components = ['osbuild','osbuild-composer','koji-osbuild']
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-u", "--user", help="Set the username of the Fedora account")
