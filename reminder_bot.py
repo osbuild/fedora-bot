@@ -4,7 +4,27 @@ import sys
 import argparse
 import yaml
 from datetime import date, timedelta
+from cryptography.fernet import Fernet
 from slack_sdk.webhook import WebhookClient
+
+
+def load_key(keyfile):
+    """
+    Loads the key from the current directory named `key.key`
+    """
+    return open(keyfile, "rb").read()
+
+
+def decrypt(filename, key):
+    """
+    Given a filename (str) and key (bytes), it decrypts the file and write it
+    """
+    f = Fernet(key)
+    with open(filename, "rb") as file:
+        encrypted_data = file.read()
+
+    decrypted_data = f.decrypt(encrypted_data)
+    return decrypted_data.decode()
 
 
 def all_wednesdays(year: int):
@@ -69,13 +89,21 @@ def slack_notify(message: str):
     assert response.body == "ok"
 
 
-def send_reminder(components, target_date, message: str):
+def send_reminder(components, slack_nicks, target_date, message: str):
+    """
+    Reads the release overviews and sends reminders appropriately
+    """
     overview = []
 
     for component in components:
         releases = release_schedule(component)
 
         for release_date, foreperson in releases.items():
+            if foreperson:
+                for name, userid in slack_nicks.items():
+                    if foreperson in name:
+                        foreperson = f"<@{userid}>"
+
             if (target_date == date.today().month and target_date == release_date.month):
                 overview.append(f"{release_date}: {component} release by {foreperson}\n")
             elif release_date == target_date:
@@ -108,13 +136,16 @@ if __name__ == "__main__":
     if args.year is not None:
         create_yearly_plan(components, int(args.year))
 
+    key = os.getenv('SLACK_NICKS_KEY')
+    slack_nicks = yaml.safe_load(decrypt("slack_nicks_encrypted.yaml", key))
+
     if args.reminder is True:
         wednesday = date.today() - timedelta(days=2)
         message = f"*This Wednesday* ({wednesday}) we have scheduled an"
-        send_reminder(components, date.today() + timedelta(days=2), message) # send reminder on Monday before the release
+        send_reminder(components, slack_nicks, date.today() + timedelta(days=2), message) # send reminder on Monday before the release
         message = "*Today* we have scheduled an"
-        send_reminder(components, date.today(), message)                     # send a reminder on the release day
+        send_reminder(components, slack_nicks, date.today(), message)                     # send a reminder on the release day
 
     if args.monthly is True:
-        message = f"*Upcoming releases for {' and '.join(components)}*"
-        send_reminder(components, date.today().month, message)                  # send an overview on the first of the month
+        message = f":rocket: *Upcoming releases for {' and '.join(components)}* :rocket:"
+        send_reminder(components, slack_nicks, date.today().month, message)               # send an overview on the first of the month
