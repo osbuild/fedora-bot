@@ -117,7 +117,7 @@ def update_bodhi(args,component,fedora):
         for line in res.split("\n"):
             if "https://bodhi.fedoraproject.org" in line:
                 url = line.strip()
-        slack_notify(f"<{url}|Bodhi update published> for *Fedora {fedora}*. :meow_checkmark:\nThis means the *release for Fedora {fedora} is complete*. :tada:")
+        slack_notify(f"<{url}|Bodhi update published> for *{component}* in *Fedora {fedora}*. :meow_checkmark:\nThis means the *release for Fedora {fedora} is complete*. :tada:")
 
 
 def schedule_fedora_builds(args,component,fedoras,missing_updates):
@@ -150,7 +150,7 @@ def schedule_fedora_builds(args,component,fedoras,missing_updates):
                     url = line.strip("Task info: ")
             if not url:
                 url = kojis[component]
-            slack_notify(f"<{url}|Koji build> for *Fedora {fedora}* completed successfully. :meow_checkmark:")
+            slack_notify(f"<{url}|Koji build> for *{component}* in *Fedora {fedora}* completed successfully. :meow_checkmark:")
 
             if branch != "rawhide":
                 update_bodhi(args,component,fedora)
