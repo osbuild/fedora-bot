@@ -28,6 +28,9 @@ def decrypt(filename, key):
 
 
 def all_wednesdays(year: int):
+    """
+    Returns all Wednesdays of a given year
+    """
     d = date(year, 1, 1)
     d += timedelta(days = 2 - d.weekday())
     if d.year != year:
@@ -39,6 +42,9 @@ def all_wednesdays(year: int):
 
 
 def create_yearly_plan(components, year: int):
+    """
+    Generate a yaml file holding an empty release plan for a component (every second Wednesday)
+    """
     for component in components:
         with open(f'{year}-{component}.yaml','w') as file:
             i = components.index(component)
@@ -51,6 +57,9 @@ def create_yearly_plan(components, year: int):
 
 
 def release_schedule(component: str):
+    """
+    Reads the release schedule yaml file and returns it
+    """
     d = date.today()
     filename = f'{d.year}-{component}.yaml'
     if os.path.isfile(filename):
@@ -64,6 +73,9 @@ def release_schedule(component: str):
 
 
 def slack_notify(message: str):
+    """
+    Sends a Slack notification to the #osbuild-release channel
+    """
     url = os.getenv('SLACK_WEBHOOK_URL')
     github_server_url = os.getenv('GITHUB_SERVER_URL')
     github_repository = os.getenv('GITHUB_REPOSITORY')
