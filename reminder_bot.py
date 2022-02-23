@@ -84,21 +84,22 @@ def slack_notify(message: str):
 
     print(message)
 
-    webhook = WebhookClient(url)
+    if url:
+        webhook = WebhookClient(url)
 
-    response = webhook.send(
-        text="fallback",
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"<{github_url}|reminder-bot>: :loudspeaker: {message}"
+        response = webhook.send(
+            text="fallback",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"<{github_url}|reminder-bot>: :loudspeaker: {message}"
+                    }
                 }
-            }
-        ])
-    assert response.status_code == 200
-    assert response.body == "ok"
+            ])
+        assert response.status_code == 200
+        assert response.body == "ok"
 
 
 def send_reminder(components, slack_nicks, target_date, message: str):
