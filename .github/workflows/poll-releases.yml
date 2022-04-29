@@ -18,7 +18,7 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v2
       - name: Check for new releases
-        run: python3 fedora_bot.py -u imagebuilder-bot -p "${{ secrets.FEDORA_PASSWORD }}"
+        run: python3 fedora_bot.py --user imagebuilder-bot --password "${{ secrets.FEDORA_PASSWORD }}" --apikey "${{ secrets.FEDORA_APIKEY }}"
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
