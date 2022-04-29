@@ -9,6 +9,8 @@ import os
 import re
 import pexpect
 import requests
+import json
+from urllib import request
 from slack_sdk.webhook import WebhookClient
 
 
@@ -95,6 +97,49 @@ def slack_notify(message: str):
         ])
     assert response.status_code == 200
     assert response.body == "ok"
+
+
+def merge_open_pull_requests(args,component):
+    req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-requests?author=packit', method="GET") # returns open PRs created by packit
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Authorization', f'token {args.apikey}')
+
+    try:
+        r = request.urlopen(req)
+        content = r.read()
+        if content:
+            res = json.loads(content.decode('utf-8'))
+            if res['total_requests'] == 0:
+                msg_ok(f"There are currently no open pull requests for {component}.")
+                return
+
+            msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
+
+            for request in res['requests']:
+                merge_pull_request(args,component,request['id'])
+
+    except Exception as e:
+        msg_info(f"{str(e)}\nFailed to get pull requests for '{component}'.")
+
+
+def merge_pull_request(args,component,pr_id):
+    req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', method="POST")
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Authorization', f'token {args.apikey}')
+
+    url = f"https://src.fedoraproject.org/rpms/{component}/pull-request/{pr_id}"
+
+    try:
+        r = request.urlopen(req)
+        content = r.read()
+        if content:
+            res = json.loads(content.decode('utf-8'))
+            if res['message'] == "Changes merged!":
+                msg_ok(f"{str(e)}\nMerged pull request for {component}: {url}")
+            else:
+                msg_info(res)
+    except Exception as e:
+        msg_info(f"{str(e)}\nFailed to merge pull request for {component}: {url}")
 
 
 def update_bodhi(args,component,fedora):
@@ -253,11 +298,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-u", "--user", help="Set the username of the Fedora account")
     parser.add_argument("-p", "--password", help="Set the Fedora account password")
+    parser.add_argument("--apikey", help="Set the Fedora account API key")
     args = parser.parse_args()
 
     fedoras = get_fedora_releases()
 
     for component in components:
+        msg_info(f"Checking for open pull requests of {component}...")
+        merge_open_pull_requests(args,component)
+
         msg_info(f"Checking for missing builds of '{component}'...")
         missing_builds, missing_updates = check_release_builds(component,fedoras)
 
