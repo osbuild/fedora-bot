@@ -105,8 +105,8 @@ def merge_open_pull_requests(args, component):
     req.add_header('Authorization', f'token {args.apikey}')
 
     try:
-        r = request.urlopen(req)
-        content = r.read()
+        result = request.urlopen(req)
+        content = result.read()
         if content:
             res = json.loads(content.decode('utf-8'))
             if res['total_requests'] == 0:
@@ -115,8 +115,8 @@ def merge_open_pull_requests(args, component):
 
             msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
 
-            for request in res['requests']:
-                merge_pull_request(args, component, request['id'])
+            for r in res['requests']:
+                merge_pull_request(args, component, r['id'])
 
     except Exception as e:
         msg_info(f"{str(e)}\nFailed to get pull requests for '{component}'.")
