@@ -239,8 +239,13 @@ def check_release_builds(component, fedoras):
     releases = set()
     updates = set()
 
+    # TODO: Drop this ugly workaround once koji-osbuild 7 gets released
+    release = "1"
+    if component == "koji-osbuild":
+        release = "0"
+
     for fedora in fedoras:
-        res = run_command(['koji', 'buildinfo', f'{component}-{version}-1.fc{fedora}'])
+        res = run_command(['koji', 'buildinfo', f'{component}-{version}-{release}.fc{fedora}'])
         if "No such build" in res:
             print(f"🙈     Fedora {fedora}: No Koji build for {component} {version}")
             releases.add(fedora)
@@ -249,7 +254,7 @@ def check_release_builds(component, fedoras):
         else:
             print(f"      Fedora {fedora}: {component} {version} in Koji")
 
-        res = run_command(['bodhi', 'updates', 'query', '--builds', f'{component}-{version}-1.fc{fedora}'])
+        res = run_command(['bodhi', 'updates', 'query', '--builds', f'{component}-{version}-{release}.fc{fedora}'])
         if "0 updates found" in res:
             print(f"🙈     Fedora {fedora}: No Bodhi update for {component} {version}")
             releases.add(fedora)
