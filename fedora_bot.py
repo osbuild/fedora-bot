@@ -124,7 +124,6 @@ def merge_open_pull_requests(args, component):
 
 def merge_pull_request(args, component, pr_id):
     req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', method="POST")
-    req.add_header('Content-Type', 'application/json')
     req.add_header('Authorization', f'token {args.apikey}')
 
     url = f"https://src.fedoraproject.org/rpms/{component}/pull-request/{pr_id}"
