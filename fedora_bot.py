@@ -134,7 +134,7 @@ def merge_pull_request(args, component, pr_id):
         if content:
             res = json.loads(content.decode('utf-8'))
             if res['message'] == "Changes merged!":
-                msg_ok(f"{str(e)}\nMerged pull request for {component}: {url}")
+                msg_ok(f"Merged pull request for {component}: {url}")
             else:
                 msg_info(res)
     except Exception as e:
