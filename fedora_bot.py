@@ -55,24 +55,6 @@ def run_command(argv):
     return ret
 
 
-def kinit(args):
-    """Get a Kerberos ticket for FEDORAPROJECT.ORG"""
-    msg_info(f"Get a Kerberos ticket for {args.user}@FEDORAPROJECT.ORG")
-    domain = "FEDORAPROJECT.ORG"
-
-    child = pexpect.spawn(f'kinit {args.user}@{domain}', timeout=60,
-                          echo=False)
-    try:
-        child.expect(".*:")
-        child.sendline(args.password)
-    except OSError as err:
-        msg_error(f"kinit with pexpect raised OSError: {err}")
-
-    child.wait()
-    res = run_command(['klist'])
-    msg_info(f"Currently valid Kerberos tickets:\n{res}")
-
-
 def slack_notify(message: str):
     url = os.getenv('SLACK_WEBHOOK_URL')
     github_server_url = os.getenv('GITHUB_SERVER_URL')
@@ -142,7 +124,7 @@ def merge_pull_request(args, component, pr_id):
 
 
 def update_bodhi(args, component, fedora):
-    msg_info(f"Updating bodhi for Fedora {fedora}...")
+    msg_info(f"Updating Bodhi for Fedora {fedora}...")
     child = pexpect.spawn("fedpkg update --type enhancement "
                             f"--notes 'Update {component} to the latest version'",
                             timeout=60, echo=False)
@@ -150,7 +132,7 @@ def update_bodhi(args, component, fedora):
         child.expect(".*:")
         child.sendline(args.password)
     except OSError as err:
-        msg_info(f"kinit with pexpect raised OSError: {err}")
+        msg_info(f"'fedpkg update' with pexpect raised OSError: {err}")
 
     child.wait()
     child.read()
@@ -164,54 +146,24 @@ def update_bodhi(args, component, fedora):
         slack_notify(f"<{url}|Bodhi update published> for *{component}* in *Fedora {fedora}*. :meow_checkmark:\nThis means the *release for Fedora {fedora} is complete*. :tada:")
 
 
-def schedule_fedora_builds(args, component, fedoras, missing_updates):
-    """Schedule builds for all active Fedora releases with missing builds"""
-
-    kojis = { "osbuild": "https://koji.fedoraproject.org/koji/packageinfo?packageID=29756",
-              "osbuild-composer": "https://koji.fedoraproject.org/koji/packageinfo?packageID=31032",
-              "koji-osbuild": "https://koji.fedoraproject.org/koji/packageinfo?packageID=32748" }
-    msg_info(f"Check {kojis[component]} for all {component} builds.")
-
+def publish_updates(args, component, fedoras):
+    """Update Bodhi for all active Fedora releases"""
     work_dir = os.getcwd()
-
     os.chdir(os.path.join(work_dir, component))
 
     for fedora in fedoras:
-        msg_info(f"Scheduling build for Fedora {fedora} (this may take a while)")
-        if fedora == '37':
-            branch = "rawhide"
-        else:
-            branch = f"f{fedora}"
-        res = run_command(['git', 'checkout', branch])
-        print(f"      Checked out branch '{branch}'")
-
-        res = run_command(['fedpkg', 'build'])
-        print(res)
-
-        if "completed successfully" in res:
-            for line in res.split("\n"):
-                if "https://koji.fedoraproject.org" in line:
-                    url = line.strip("Task info: ")
-            if not url:
-                url = kojis[component]
-            slack_notify(f"<{url}|Koji build> for *{component}* in *Fedora {fedora}* completed successfully. :meow_checkmark:")
-
-            if branch != "rawhide":
-                update_bodhi(args, component, fedora)
-        elif fedora in missing_updates:
-            if branch != "rawhide":
-                update_bodhi(args, component, fedora)
-        else:
-            msg_info(f"Did not build Fedora {fedora}.")
-            continue
+        run_command(['git', 'checkout', f"f{fedora}"])
+        print(f"      Checked out branch 'f{fedora}'")
+        update_bodhi(args, component, fedora)
 
 
 def get_latest_dist_git_release(component):
     """Get the latest release version found in dist-git"""
-    msg_info(f"Cloning into 'https://src.fedoraproject.org/rpms/{component}.git'...")
+    print(f"      Cloning into 'https://src.fedoraproject.org/rpms/{component}.git'...")
     work_dir = os.getcwd()
     res = run_command(['git','clone',f"https://src.fedoraproject.org/rpms/{component}.git"])
-    print(res)
+    if res:
+        print(res)
     os.chdir(os.path.join(work_dir, component))
     branch = run_command(['git', 'branch', '--show-current'])
     print(f"      Checked out dist-git with branch '{branch}'")
@@ -231,12 +183,11 @@ def get_latest_dist_git_release(component):
     return version.group(0)
 
 
-def check_release_builds(component, fedoras):
-    """Check if there are missing builds in Koji for any active Fedora release"""
+def get_missing_updates(component, fedoras):
+    """Check for existing Koji builds that have no Bodhi update published for any active Fedora release"""
     version = get_latest_dist_git_release(component)
     print(f"      Version {component} {version} found in dist-git")
 
-    releases = set()
     updates = set()
 
     # TODO: Drop this ugly workaround once koji-osbuild 7 gets released
@@ -246,27 +197,22 @@ def check_release_builds(component, fedoras):
 
     for fedora in fedoras:
         res = run_command(['koji', 'buildinfo', f'{component}-{version}-{release}.fc{fedora}'])
-        if "No such build" in res:
-            print(f"🙈     Fedora {fedora}: No Koji build for {component} {version}")
-            releases.add(fedora)
-        elif "State: FAILED" in res:
-            msg_error(f"Fedora {fedora}: Build for {component} {version} failed")
+        if "State: COMPLETE" in res:
+            print(f"      Fedora {fedora}: ✅ Build for {component} {version} is available in Koji")
+            res = run_command(['bodhi', 'updates', 'query', '--builds', f'{component}-{version}-{release}.fc{fedora}'])
+            if "0 updates found" in res:
+                print(f"      Fedora {fedora}: No Bodhi update for {component} {version}")
+                updates.add(fedora)
+            else:
+                print(f"      Fedora {fedora}: ✅ Update for {component} {version} is available in Bodhi")
         else:
-            print(f"      Fedora {fedora}: {component} {version} in Koji")
+            msg_info(f"WARNING: There is no build for {component} {version} in Fedora {fedora}. Probably packit is still doing its thing...")
 
-        res = run_command(['bodhi', 'updates', 'query', '--builds', f'{component}-{version}-{release}.fc{fedora}'])
-        if "0 updates found" in res:
-            print(f"🙈     Fedora {fedora}: No Bodhi update for {component} {version}")
-            releases.add(fedora)
-            updates.add(fedora)
-        else:
-            print(f"      Fedora {fedora}: {component} {version} in Bodhi")
-
-    return list(releases), list(updates)
+    return list(updates)
 
 
 def get_fedora_releases():
-    """Get all active Fedora releases"""
+    """Get all active Fedora releases (exluding rawhide)"""
     # https://github.com/sgallagher/get-fedora-releases-action/blob/main/get_fedora_releases.py
     res = None
     while not res:
@@ -277,22 +223,12 @@ def get_fedora_releases():
         except requests.exceptions.HTTPError as err:
             msg_error(err)
 
-    #res.raise_for_status()
-
     stable = set()
     for release in res.json()['releases']:
         if release['id_prefix'] == "FEDORA":
             stable.add(release['version'])
 
-    res = requests.get('https://bodhi.fedoraproject.org/releases?state=pending')
-    res.raise_for_status()
-
-    devel = set()
-    for release in res.json()['releases']:
-        if release['id_prefix'] == "FEDORA" and release['version'] != "eln":
-            devel.add(release['version'])
-
-    return list(devel.union(stable))
+    return list(stable)
 
 
 def main():
@@ -308,20 +244,19 @@ def main():
     fedoras = get_fedora_releases()
 
     for component in components:
+        print(f"\n--- {component} ---\n")
         msg_info(f"Checking for open pull requests of {component}...")
         merge_open_pull_requests(args, component)
 
-        msg_info(f"Checking for missing builds of '{component}'...")
-        missing_builds, missing_updates = check_release_builds(component, fedoras)
+        msg_info(f"Checking for missing updates of '{component}'...")
+        missing_updates = get_missing_updates(component, fedoras)
 
-        if missing_builds or missing_updates:
-            msg_info(f"Found missing builds in Koji: {missing_builds}")
+        if missing_updates:
             msg_info(f"Found missing updates in Bodhi: {missing_updates}")
-            kinit(args)
-            schedule_fedora_builds(args, component, missing_builds, missing_updates)
-            msg_ok(f"Tried to schedule builds for {missing_builds} and update {missing_updates}.")
+            publish_updates(args, component, missing_updates)
+            msg_ok(f"Tried to update {missing_updates}.")
         else:
-            msg_ok("No releases found with missing builds. Exiting.")
+            msg_ok("No releases found with missing updates.")
 
 
 if __name__ == "__main__":
