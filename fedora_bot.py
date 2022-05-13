@@ -81,30 +81,43 @@ def slack_notify(message: str):
     assert response.body == "ok"
 
 
-def merge_open_pull_requests(args, component):
-    req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-requests?author=packit', method="GET") # returns open PRs created by packit
+def check_pull_request_flags(component, pr_id):
+    """
+    Check the test results in the pull request, which are represented in Pagure as 'flags'
+    As the test results (pagure flags) are not immediately available and there is no indication of running tests
+    we have to hardcode the amount of test results to expect so we can verify all tests have passed.
+    """
+    req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/flag', method="GET") # returns test statuses
     req.add_header('Content-Type', 'application/json')
-    req.add_header('Authorization', f'token {args.apikey}')
+
+    num_tests = { 'osbuild': 3,
+                  'osbuild-composer': 2,
+                  'koji-osbuild': 2 }
+    test_results = []
+    success = False
 
     try:
         result = request.urlopen(req)
         content = result.read()
         if content:
             res = json.loads(content.decode('utf-8'))
-            if res['total_requests'] == 0:
-                msg_ok(f"There are currently no open pull requests for {component}.")
-                return
+            for flag in res['flags']:
+                test_results.append(flag['status'])
 
-            msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
-
-            for r in res['requests']:
-                merge_pull_request(args, component, r['id'])
+            if len(test_results) != num_tests[component]:
+                msg_info(f"Only {len(test_results)}/{num_tests[component]} tests have run, let's try again later.")
+            elif 'failure' not in test_results:
+                    msg_ok(f"All {len(test_results)} tests passed so the pull-request can be merged.")
+                    success = True
 
     except Exception as e:
-        msg_info(f"{str(e)}\nFailed to get pull requests for '{component}'.")
+        msg_info(f"{str(e)}\nFailed to get flags for pull request '{pr_id}'.")
+
+    return success
 
 
 def merge_pull_request(args, component, pr_id):
+    """Merge a single pull request"""
     req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', method="POST")
     req.add_header('Authorization', f'token {args.apikey}')
 
@@ -123,7 +136,37 @@ def merge_pull_request(args, component, pr_id):
         msg_info(f"{str(e)}\nFailed to merge pull request for {component}: {url}")
 
 
+def merge_open_pull_requests(args, component):
+    """
+    Try to merge any open pull request that meets the criteria:
+     1. it was created by packit
+     2. all tests have passed
+    """
+    req = request.Request(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-requests?author=packit', method="GET") # returns open PRs created by packit
+    req.add_header('Content-Type', 'application/json')
+
+    try:
+        result = request.urlopen(req)
+        content = result.read()
+        if content:
+            res = json.loads(content.decode('utf-8'))
+            if res['total_requests'] == 0:
+                msg_ok(f"There are currently no open pull requests for {component}.")
+                return
+
+            msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
+
+            for pr in res['requests']:
+                successful_checks = check_pull_request_flags(component, pr['id'])
+                if successful_checks:
+                    merge_pull_request(args, component, pr['id'])
+
+    except Exception as e:
+        msg_info(f"{str(e)}\nFailed to get pull requests for '{component}'.")
+
+
 def update_bodhi(args, component, fedora):
+    """Publish a single Bodhi update"""
     msg_info(f"Updating Bodhi for Fedora {fedora}...")
     child = pexpect.spawn("fedpkg update --type enhancement "
                             f"--notes 'Update {component} to the latest version'",
