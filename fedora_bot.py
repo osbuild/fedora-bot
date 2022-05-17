@@ -54,13 +54,16 @@ def run_command(argv):
 
 
 def slack_notify(message: str):
+    msg_ok(message)
+
     url = os.getenv('SLACK_WEBHOOK_URL')
+    if not url:
+        return
+
     github_server_url = os.getenv('GITHUB_SERVER_URL')
     github_repository = os.getenv('GITHUB_REPOSITORY')
     github_run_id = os.getenv('GITHUB_RUN_ID')
     github_url = f"{github_server_url}/{github_repository}/actions/runs/{github_run_id}"
-
-    msg_ok(message)
 
     webhook = WebhookClient(url)
 
