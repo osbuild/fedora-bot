@@ -79,16 +79,13 @@ def slack_notify(message: str):
     assert response.body == "ok"
 
 
-def check_pull_request_flags(component, pr_id):
+def check_pull_request_flags(component, pr_id, num_tests):
     """
     Check the test results in the pull request, which are represented in Pagure as 'flags'
     As the test results (pagure flags) are not immediately available and there is no indication of running tests
     we have to hardcode the amount of test results to expect so we can verify all tests have passed.
     """
     req = None
-    num_tests = { 'osbuild': 3,
-                  'osbuild-composer': 2,
-                  'koji-osbuild': 2 }
     test_results = []
     success = False
 
@@ -104,13 +101,13 @@ def check_pull_request_flags(component, pr_id):
     for flag in res['flags']:
         test_results.append(flag['status'])
 
-    if len(test_results) != num_tests[component]: # check if the expected number of tests passed
-        msg_info(f"Only {len(test_results)}/{num_tests[component]} tests have run, let's try again later.")
+    if len(test_results) != num_tests: # check if the expected number of tests passed
+        msg_info(f"Only {len(test_results)}/{num_tests} tests have run, let's try again later.")
     elif 'failure' not in test_results:
         msg_ok(f"All {len(test_results)} tests passed so the pull-request can be merged.")
         success = True
     elif 'failure' in test_results:
-        msg_info(f"Pull request '{pr_id}' has {len(test_results)}/{num_tests[component]} failed tests and therefore cannot be auto-merged.")
+        msg_info(f"Pull request '{pr_id}' has {len(test_results)}/{num_tests} failed tests and therefore cannot be auto-merged.")
     else:
         msg_error("Something is wrong - maybe the amount of tests have changed?")
 
@@ -136,7 +133,7 @@ def merge_pull_request(args, component, pr_id):
         msg_info(res)
 
 
-def merge_open_pull_requests(args, component):
+def merge_open_pull_requests(args, component, num_tests):
     """
     Try to merge any open pull request that meets the criteria:
      1. it was created by packit
@@ -160,7 +157,7 @@ def merge_open_pull_requests(args, component):
     msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
 
     for pr in res['requests']:
-        successful_checks = check_pull_request_flags(component, pr['id'])
+        successful_checks = check_pull_request_flags(component, pr['id'], num_tests)
         if successful_checks:
             merge_pull_request(args, component, pr['id'])
 
@@ -276,20 +273,27 @@ def get_fedora_releases():
 
 def main():
     """Main function"""
-    components = ['osbuild','osbuild-composer','koji-osbuild']
-
     parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--component", action='append', metavar="PACKAGE:NUM_TESTS", help="Component name and expected number of tests in PR")
     parser.add_argument("-u", "--user", help="Set the username of the Fedora account")
     parser.add_argument("-p", "--password", help="Set the Fedora account password")
     parser.add_argument("--apikey", help="Set the Fedora account API key")
     args = parser.parse_args()
 
+    if not args.component:
+        parser.error("Need to specify at least one --component")
+
     fedoras = get_fedora_releases()
 
-    for component in components:
+    for component_numtests in args.component:
+        try:
+            component, num_tests = component_numtests.split(':')
+        except AttributeError:
+            parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS: {component_numtests}")
+
         print(f"\n--- {component} ---\n")
         msg_info(f"Checking for open pull requests of {component}...")
-        merge_open_pull_requests(args, component)
+        merge_open_pull_requests(args, component, num_tests)
 
         msg_info(f"Checking for missing updates of '{component}'...")
         missing_updates = get_missing_updates(component, fedoras)
