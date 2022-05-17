@@ -1,6 +1,7 @@
 FROM registry.fedoraproject.org/fedora:36
 
-RUN dnf -y install krb5-workstation python3 python3-pip fedpkg koji --setopt=install_weak_deps=False
-RUN pip install --no-cache-dir pexpect slack_sdk cryptography
+RUN dnf -y install --setopt=install_weak_deps=False \
+  krb5-workstation fedpkg koji \
+  python3 python3-pexpect python3-cryptography python3-slackclient
 
 ENV KRB5CCNAME=/tmp/ticket
