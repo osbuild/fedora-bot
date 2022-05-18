@@ -213,7 +213,7 @@ def get_latest_dist_git_release(component):
         lines = file.readlines()
         for line in lines:
             if line.startswith("Version:"):
-                version = re.search('[0-9]+', line)
+                version = re.search('[0-9.]+', line)
 
     os.chdir(work_dir)
 
