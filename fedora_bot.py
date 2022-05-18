@@ -121,6 +121,7 @@ def merge_pull_request(args, component, pr_id):
     """Merge a single pull request"""
     url = f"https://src.fedoraproject.org/rpms/{component}/pull-request/{pr_id}"
 
+    req = None
     while not req:
         try: # fetch test status
             req = requests.post(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', headers={'Authorization': f'token {args.apikey}'})
