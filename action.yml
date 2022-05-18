@@ -1,0 +1,30 @@
+# Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
+name: "Fedora bot"
+description: "Check for open PRs and missing Bodhi updates"
+
+inputs:
+  fedora_username:
+    description: "Valid username for src.fedoraproject.org"
+    required: true
+  fedora_password:
+    description: "The Fedora password to the username"
+    required: true
+  fedora_apikey:
+    description: "The Fedora API Key"
+    required: true
+  num_tests:
+    description: "How many tests to expect for Fedora CI"
+    required: true
+  SLACK_WEBHOOK_URL:
+    description: "A Slack webhook URL to receive notifications"
+    required: false
+
+runs:
+    using: "composite"
+    steps:
+      - name: Check for new releases
+        run: |
+          $GITHUB_ACTION_PATH/fedora_bot.py --user "{{ inputs.fedora_username }}" --password "${{ inputs.fedora_password }}" --apikey "${{ inputs.fedora_apikey }}" --component "{{ github.repository }}":"${{ inputs.num_tests }}"
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: "${{ inputs.SLACK_WEBHOOK_URL }}"
