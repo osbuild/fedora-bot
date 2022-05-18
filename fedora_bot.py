@@ -98,7 +98,7 @@ def check_pull_request_flags(component, pr_id):
         except requests.exceptions.Timeout:
             pass
         except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(e)}\nFailed to get flags for pull request '{pr_id}'.")
+            msg_info(f"{str(err)}\nFailed to get flags for pull request '{pr_id}'.")
 
     res = req.json()
     for flag in res['flags']:
@@ -127,7 +127,7 @@ def merge_pull_request(args, component, pr_id):
         except requests.exceptions.Timeout:
             pass
         except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(e)}\nFailed to merge pull request for {component}: {url}")
+            msg_info(f"{str(err)}\nFailed to merge pull request for {component}: {url}")
 
     res = req.json()
     if res['message'] == "Changes merged!":
@@ -150,7 +150,7 @@ def merge_open_pull_requests(args, component):
         except requests.exceptions.Timeout:
             pass
         except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(e)}\nFailed to get pull requests for '{component}'.")
+            msg_info(f"{str(err)}\nFailed to get pull requests for '{component}'.")
 
     res = req.json()
     if res['total_requests'] == 0:
