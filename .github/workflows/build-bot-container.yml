@@ -10,22 +10,25 @@ jobs:
   build-and-publish:
     name: Publish container image
     runs-on: 'ubuntu-latest'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
 
-      - name: Login to Quay.io
+      - name: Login to container registry
         uses: docker/login-action@v1
         with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_REGISTRY_USER }}
-          password: ${{ secrets.QUAY_REGISTRY_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
-          build-args: BUILDER_SRC=github.com/osbuild/fedora-bot
+          build-args: BUILDER_SRC=github.com/${{ github.repository }}
           push: true
           file: Dockerfile
-          tags: quay.io/osbuild/fedora-bot:latest
+          tags: ghcr.io/${{ github.repository }}:latest

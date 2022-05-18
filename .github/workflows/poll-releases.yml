@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: quay.io/osbuild/fedora-bot:latest
+      image: ghcr.io/osbuild/fedora-bot:latest
 
     steps:
       - name: Check out the repo
