@@ -136,7 +136,6 @@ def send_reminder(components, slack_nicks, target_date, message: str):
 if __name__ == "__main__":
     """Main function"""
     components = ['osbuild-composer','osbuild']
-    url = os.getenv('SLACK_WEBHOOK_URL')
 
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("-y", "--year", help="Year to use to create yaml files for osbuild and osbuild-composer")
