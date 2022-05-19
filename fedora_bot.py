@@ -292,8 +292,9 @@ def main():
     for component_numtests in args.component:
         try:
             component, num_tests = component_numtests.split(':')
-        except AttributeError:
-            parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS: {component_numtests}")
+            num_tests = int(num_tests)
+        except ValueError:
+            parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS : {component_numtests}")
 
         print(f"\n--- {component} ---\n")
         msg_info(f"Checking for open pull requests of {component}...")
