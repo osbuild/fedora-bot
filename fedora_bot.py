@@ -106,11 +106,13 @@ def check_pull_request_flags(component, pr_id, num_tests):
 
     if len(test_results) != num_tests: # check if the expected number of tests passed
         msg_info(f"Only {len(test_results)}/{num_tests} tests have run, let's try again later.")
-    elif 'failure' not in test_results:
+    elif all(r == 'success' for r in test_results):
         msg_ok(f"All {len(test_results)} tests passed so the pull-request can be merged.")
         success = True
     elif 'failure' in test_results:
         msg_info(f"Pull request '{pr_id}' has {len(test_results)}/{num_tests} failed tests and therefore cannot be auto-merged.")
+    elif 'pending' in test_results:
+        msg_info(f"Some tests are still running, let's try again later")
     else:
         msg_error("Something is wrong - maybe the amount of tests have changed?")
 
