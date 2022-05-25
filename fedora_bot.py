@@ -322,15 +322,18 @@ def main():
         msg_info(f"Checking for open pull requests of {component}...")
         merge_open_pull_requests(args, component, num_tests)
 
-        msg_info(f"Checking for missing updates of '{component}'...")
-        missing_updates = get_missing_updates(component, fedoras)
+        if args.user and args.password: # Only check Bodhi if credentials were supplied
+            msg_info(f"Checking for missing updates of '{component}'...")
+            missing_updates = get_missing_updates(component, fedoras)
 
-        if missing_updates:
-            msg_info(f"Found missing updates in Bodhi: {missing_updates}")
-            publish_updates(args, component, missing_updates)
-            msg_ok(f"Tried to update {missing_updates}.")
+            if missing_updates:
+                msg_info(f"Found missing updates in Bodhi: {missing_updates}")
+                publish_updates(args, component, missing_updates)
+                msg_ok(f"Tried to update {missing_updates}.")
+            else:
+                msg_ok("No releases found with missing updates.")
         else:
-            msg_ok("No releases found with missing updates.")
+            msg_info("No Fedora credentials supplied - skipping Bodhi updates.")
 
 
 if __name__ == "__main__":
