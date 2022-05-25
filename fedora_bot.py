@@ -319,8 +319,11 @@ def main():
             parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS : {component_numtests}")
 
         print(f"\n--- {component} ---\n")
-        msg_info(f"Checking for open pull requests of {component}...")
-        merge_open_pull_requests(args, component, num_tests)
+        if args.apikey:
+            msg_info(f"Checking for open pull requests of {component}...")
+            merge_open_pull_requests(args, component, num_tests)
+        else:
+            msg_info("No Fedora account API key supplied - skipping merging of pull requests.")
 
         if args.user and args.password: # Only check Bodhi if credentials were supplied
             msg_info(f"Checking for missing updates of '{component}'...")
