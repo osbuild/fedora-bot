@@ -3,18 +3,18 @@ name: "Fedora bot"
 description: "Check for open PRs and missing Bodhi updates"
 
 inputs:
-  fedora_username:
-    description: "Valid username for src.fedoraproject.org"
-    required: true
-  fedora_password:
-    description: "The Fedora password to the username"
-    required: true
   fedora_apikey:
     description: "The Fedora API Key"
     required: true
   num_tests:
     description: "How many tests to expect for Fedora CI"
     required: true
+  fedora_username:
+    description: "Valid username for src.fedoraproject.org (needed for publishing Bodhi updates)"
+    required: false
+  fedora_password:
+    description: "The Fedora password to the username (needed for publishing Bodhi updates)"
+    required: false
   SLACK_WEBHOOK_URL:
     description: "A Slack webhook URL to receive notifications"
     required: false
