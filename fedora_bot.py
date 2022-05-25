@@ -53,6 +53,25 @@ def run_command(argv):
     return ret
 
 
+def kinit(args):
+    """Get a Kerberos ticket for FEDORAPROJECT.ORG"""
+    domain = "FEDORAPROJECT.ORG"
+    print(f"      Get a Kerberos ticket for {args.user}@{domain}")
+
+    child = pexpect.spawn(f'kinit {args.user}@{domain}', timeout=60,
+                          echo=False)
+    try:
+        child.expect(".*:")
+        child.sendline(args.password)
+    except OSError as err:
+        msg_error(f"kinit with pexpect raised OSError: {err}")
+
+    child.wait()
+    res = run_command(['klist'])
+    if "not found" in res:
+        msg_error(f"An error occurred getting a valid Kerberos ticket:\n{res}")
+
+
 def slack_notify(message: str):
     msg_ok(message)
 
@@ -171,6 +190,7 @@ def merge_open_pull_requests(args, component, num_tests):
 def update_bodhi(args, component, fedora):
     """Publish a single Bodhi update"""
     msg_info(f"Updating Bodhi for Fedora {fedora}...")
+    kinit(args)
     child = pexpect.spawn("fedpkg update --type enhancement "
                             f"--notes 'Update {component} to the latest version'",
                             timeout=60, echo=False)
