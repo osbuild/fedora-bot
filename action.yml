@@ -4,11 +4,11 @@ description: "Check for open PRs and missing Bodhi updates"
 
 inputs:
   fedora_apikey:
-    description: "The Fedora API Key"
-    required: true
+    description: "The Fedora API Key (needed for merging PRs)"
+    required: false
   num_tests:
-    description: "How many tests to expect for Fedora CI"
-    required: true
+    description: "How many tests to expect for Fedora CI (needed for merging PRs)"
+    required: false
   fedora_username:
     description: "Valid username for src.fedoraproject.org (needed for publishing Bodhi updates)"
     required: false
