@@ -53,6 +53,25 @@ def run_command(argv):
     return ret
 
 
+def kinit(args):
+    """Get a Kerberos ticket for FEDORAPROJECT.ORG"""
+    domain = "FEDORAPROJECT.ORG"
+    print(f"      Get a Kerberos ticket for {args.user}@{domain}")
+
+    child = pexpect.spawn(f'kinit {args.user}@{domain}', timeout=60,
+                          echo=False)
+    try:
+        child.expect(".*:")
+        child.sendline(args.password)
+    except OSError as err:
+        msg_error(f"kinit with pexpect raised OSError: {err}")
+
+    child.wait()
+    res = run_command(['klist'])
+    if "not found" in res:
+        msg_error(f"An error occurred getting a valid Kerberos ticket:\n{res}")
+
+
 def slack_notify(message: str):
     msg_ok(message)
 
@@ -106,11 +125,13 @@ def check_pull_request_flags(component, pr_id, num_tests):
 
     if len(test_results) != num_tests: # check if the expected number of tests passed
         msg_info(f"Only {len(test_results)}/{num_tests} tests have run, let's try again later.")
-    elif 'failure' not in test_results:
+    elif all(r == 'success' for r in test_results):
         msg_ok(f"All {len(test_results)} tests passed so the pull-request can be merged.")
         success = True
     elif 'failure' in test_results:
         msg_info(f"Pull request '{pr_id}' has {len(test_results)}/{num_tests} failed tests and therefore cannot be auto-merged.")
+    elif 'pending' in test_results:
+        msg_info(f"Some tests are still running, let's try again later")
     else:
         msg_error("Something is wrong - maybe the amount of tests have changed?")
 
@@ -169,6 +190,7 @@ def merge_open_pull_requests(args, component, num_tests):
 def update_bodhi(args, component, fedora):
     """Publish a single Bodhi update"""
     msg_info(f"Updating Bodhi for Fedora {fedora}...")
+    kinit(args)
     child = pexpect.spawn("fedpkg update --type enhancement "
                             f"--notes 'Update {component} to the latest version'",
                             timeout=60, echo=False)
@@ -297,18 +319,24 @@ def main():
             parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS : {component_numtests}")
 
         print(f"\n--- {component} ---\n")
-        msg_info(f"Checking for open pull requests of {component}...")
-        merge_open_pull_requests(args, component, num_tests)
-
-        msg_info(f"Checking for missing updates of '{component}'...")
-        missing_updates = get_missing_updates(component, fedoras)
-
-        if missing_updates:
-            msg_info(f"Found missing updates in Bodhi: {missing_updates}")
-            publish_updates(args, component, missing_updates)
-            msg_ok(f"Tried to update {missing_updates}.")
+        if args.apikey:
+            msg_info(f"Checking for open pull requests of {component}...")
+            merge_open_pull_requests(args, component, num_tests)
         else:
-            msg_ok("No releases found with missing updates.")
+            msg_info("No Fedora account API key supplied - skipping merging of pull requests.")
+
+        if args.user and args.password: # Only check Bodhi if credentials were supplied
+            msg_info(f"Checking for missing updates of '{component}'...")
+            missing_updates = get_missing_updates(component, fedoras)
+
+            if missing_updates:
+                msg_info(f"Found missing updates in Bodhi: {missing_updates}")
+                publish_updates(args, component, missing_updates)
+                msg_ok(f"Tried to update {missing_updates}.")
+            else:
+                msg_ok("No releases found with missing updates.")
+        else:
+            msg_info("No Fedora credentials supplied - skipping Bodhi updates.")
 
 
 if __name__ == "__main__":
