@@ -120,12 +120,9 @@ def send_reminder(components, slack_nicks, target_date, message: str):
             if (target_date == date.today().month and target_date == release_date.month):
                 overview.append(f"{release_date}: {component} release by {foreperson}\n")
             elif release_date == target_date:
-                dev_guide = "https://www.osbuild.org/guides/developer-guide/releasing.html"
                 internal_guide = "https://osbuild.pages.redhat.com/internal-guides/releasing.html"
-                instructions = (f"*1.* Create an upstream release (<{dev_guide}|read the docs>)\n"
-                                f"*2.* Watch this channel for the CS9/RHEL9 merge requests (<{internal_guide}|read the docs>)\n"
-                                "*3.* Once everything is green, merge the CS9 merge request and watch this channel for the RHEL8 pull request.\n"
-                                "In between, either enjoy the update messages from Koji, Bodhi and Brew or have some :popcorn:")
+                instructions = (f"*1.* Watch this channel for the CS9/RHEL9 merge requests (<{internal_guide}|read the docs>)\n"
+                                "*2.* Once everything is green, merge the CS9 merge request and watch this channel for the RHEL8 pull request.\n")
                 slack_notify(f'{message} <https://github.com/osbuild/{component}/releases|{component} release> by {foreperson}\n{instructions}')
 
     if overview:
