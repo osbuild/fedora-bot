@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import yaml
+import requests
 from datetime import date, timedelta
 from cryptography.fernet import Fernet
 from slack_sdk.webhook import WebhookClient
@@ -130,6 +131,40 @@ def send_reminder(components, slack_nicks, target_date, message: str):
         slack_notify(f"{message}\n{''.join(overview)}")
 
 
+def frontend_reminder():
+    """
+    Checks if there are dependabot PRs open against the frontend for >7 days
+    """
+    repo = 'image-builder-frontend'
+    owner = 'RedHatInsights'
+    days = 7
+    one_week = date.today() - timedelta(days = days)
+
+    payload = { "q":f'type:pr is:open repo:{owner}/{repo} label:dependencies created:<{one_week}' }
+
+    print(payload)
+    try:
+        req = requests.get("https://api.github.com/search/issues", params=payload)
+        res = req.json()
+    except:
+        print(f"Couldn't get PR infos for {owner}/{repo}.")
+        res = None
+
+    if req.status_code == 200 and res is not None:
+        items = res["items"]
+        pull_requests = ""
+
+        if len(items) > 0:
+            for item in items:
+                print(f"{item['html_url']}")
+                pull_requests += f" *<{item['html_url']}|#{item['number']}>*"
+
+            text = "pull requests have"
+            if len(items) == 1:
+                text = "pull request has"
+            slack_notify(f"{len(items)} dependabot {text} been open for more than {days} days:{pull_requests}")
+
+
 if __name__ == "__main__":
     """Main function"""
     components = ['osbuild-composer','osbuild']
@@ -139,6 +174,8 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--monthly", help="Send the monthly overview to our #osbuild-release Slack channel",
                         default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("-r", "--reminder", help="Send the release reminders on the scheduled date to our #osbuild-release Slack channel",
+                        default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("-f", "--frontend", help="Check open PRs against frontend and ping on Slack",
                         default=False, action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
@@ -158,3 +195,6 @@ if __name__ == "__main__":
     if args.monthly is True:
         message = f":rocket: *Upcoming releases for {' and '.join(components)}* :rocket:"
         send_reminder(components, slack_nicks, date.today().month, message)               # send an overview on the first of the month
+
+    if args.frontend is True and date.weekday(date.today()) == 0:                         # send frontend reminders only on Mondays
+        frontend_reminder()
