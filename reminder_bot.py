@@ -183,7 +183,8 @@ if __name__ == "__main__":
         create_yearly_plan(components, int(args.year))
 
     key = os.getenv('SLACK_NICKS_KEY')
-    slack_nicks = yaml.safe_load(decrypt("slack_nicks_encrypted.yaml", key))
+    if key:
+        slack_nicks = yaml.safe_load(decrypt("slack_nicks_encrypted.yaml", key))
 
     if args.reminder is True:
         wednesday = date.today() - timedelta(days=2)
