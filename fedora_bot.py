@@ -223,6 +223,22 @@ def publish_updates(args, component, fedoras):
         update_bodhi(args, component, fedora)
 
 
+def schedule_koji_build(fedora, component, version):
+    """Schedule a single build in Koji"""
+    msg_info(f"Scheduling Koji build for {component} {version} for Fedora {fedora} (branch: f{fedora})...")
+    work_dir = os.getcwd()
+    os.chdir(os.path.join(work_dir, component))
+    run_command(['git', 'checkout', f"f{fedora}"])
+    res = run_command(['fedpkg', 'build'])
+
+    if "completed successfully" in res:
+        print(f"      Fedora {fedora}: ✅ Build for {component} {version} successfully completed")
+    else:
+        print(f"      Something went wrong with the Koji build:\n{res}")
+
+    os.chdir(work_dir)
+
+
 def get_latest_dist_git_release(component):
     """Get the latest release version found in dist-git"""
     print(f"      Cloning into 'https://src.fedoraproject.org/rpms/{component}.git'...")
@@ -249,7 +265,7 @@ def get_latest_dist_git_release(component):
     return version.group(0)
 
 
-def get_missing_updates(component, fedoras):
+def get_missing_updates(args, component, fedoras):
     """Check for existing Koji builds that have no Bodhi update published for any active Fedora release"""
     version = get_latest_dist_git_release(component)
     print(f"      Version {component} {version} found in dist-git")
@@ -272,7 +288,10 @@ def get_missing_updates(component, fedoras):
             else:
                 print(f"      Fedora {fedora}: ✅ Update for {component} {version} is available in Bodhi")
         else:
-            msg_info(f"WARNING: There is no build for {component} {version} in Fedora {fedora}. Probably packit is still doing its thing...")
+            kinit(args)
+            schedule_koji_build(fedora, component, version)
+            #FIXME: Re-enable once packit is fixed
+            # msg_info(f"WARNING: There is no build for {component} {version} in Fedora {fedora}. Probably packit is still doing its thing...")
 
     return list(updates)
 
@@ -327,7 +346,7 @@ def main():
 
         if args.user and args.password: # Only check Bodhi if credentials were supplied
             msg_info(f"Checking for missing updates of '{component}'...")
-            missing_updates = get_missing_updates(component, fedoras)
+            missing_updates = get_missing_updates(args, component, fedoras)
 
             if missing_updates:
                 msg_info(f"Found missing updates in Bodhi: {missing_updates}")
