@@ -9,6 +9,7 @@ import os
 import re
 import pexpect
 import requests
+from requests.adapters import HTTPAdapter, Retry
 from slack_sdk.webhook import WebhookClient
 
 
@@ -101,24 +102,37 @@ def slack_notify(message: str):
     assert response.body == "ok"
 
 
-def check_pull_request_flags(component, pr_id, num_tests):
+def fedora_distgit_http_client() -> requests.Session:
+    """
+    Returns a configured http client for Fedora's dist-git. We need a custom
+    client in order to implement retries. These are needed because
+    src.fedoraproject.org proved to be slightly unreliable and without
+    retries, some fedora-bot runs failed.
+    """
+    retry_adapter = Retry(
+        total=3,
+        backoff_factor=0.1,
+        # POST isn't generally idempotent but we only use it to merge PRs
+        # which actually is idempotent.
+        allowed_methods=["POST"] + list(Retry.DEFAULT_ALLOWED_METHODS),
+        # Enable retrying on retryable http codes.
+        status_forcelist=[500, 502, 503, 504],
+    )
+    session = requests.Session()
+    session.mount("https://src.fedoraproject.org/", HTTPAdapter(max_retries=retry_adapter))
+    return session
+
+
+def check_pull_request_flags(http, component, pr_id, num_tests):
     """
     Check the test results in the pull request, which are represented in Pagure as 'flags'
     As the test results (pagure flags) are not immediately available and there is no indication of running tests
     we have to hardcode the amount of test results to expect so we can verify all tests have passed.
     """
-    req = None
     test_results = []
     success = False
 
-    while not req:
-        try: # fetch test status
-            req = requests.get(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/flag')
-        except requests.exceptions.Timeout:
-            pass
-        except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(err)}\nFailed to get flags for pull request '{pr_id}'.")
-
+    req = http.get(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/flag')
     res = req.json()
     for flag in res['flags']:
         test_results.append(flag['status'])
@@ -138,19 +152,11 @@ def check_pull_request_flags(component, pr_id, num_tests):
     return success
 
 
-def merge_pull_request(args, component, pr_id):
+def merge_pull_request(http, args, component, pr_id):
     """Merge a single pull request"""
     url = f"https://src.fedoraproject.org/rpms/{component}/pull-request/{pr_id}"
 
-    req = None
-    while not req:
-        try: # fetch test status
-            req = requests.post(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', headers={'Authorization': f'token {args.apikey}'})
-        except requests.exceptions.Timeout:
-            pass
-        except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(err)}\nFailed to merge pull request for {component}: {url}")
-
+    req = http.post(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', headers={'Authorization': f'token {args.apikey}'})
     res = req.json()
     if res['message'] == "Changes merged!":
         msg_ok(f"Merged pull request for {component}: {url}")
@@ -164,16 +170,8 @@ def merge_open_pull_requests(args, component, num_tests):
      1. it was created by packit
      2. all tests have passed
     """
-    req = None
-
-    while not req:
-        try: # fetch all open PRs created by packit
-            req = requests.get(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-requests?author=packit')
-        except requests.exceptions.Timeout:
-            pass
-        except requests.exceptions.HTTPError as err:
-            msg_info(f"{str(err)}\nFailed to get pull requests for '{component}'.")
-
+    http = fedora_distgit_http_client()
+    req = http.get(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-requests?author=packit')
     res = req.json()
     if res['total_requests'] == 0:
         msg_ok(f"There are currently no open pull requests for {component}.")
@@ -182,9 +180,9 @@ def merge_open_pull_requests(args, component, num_tests):
     msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
 
     for pr in res['requests']:
-        successful_checks = check_pull_request_flags(component, pr['id'], num_tests)
+        successful_checks = check_pull_request_flags(http, component, pr['id'], num_tests)
         if successful_checks:
-            merge_pull_request(args, component, pr['id'])
+            merge_pull_request(http, args, component, pr['id'])
 
 
 def update_bodhi(args, component, fedora):
