@@ -131,7 +131,7 @@ def send_reminder(components, slack_nicks, target_date, message: str):
         slack_notify(f"{message}\n{''.join(overview)}")
 
 
-def frontend_reminder():
+def frontend_reminder(slack_nicks):
     """
     Checks if there are dependabot PRs open against the frontend for >7 days
     """
@@ -154,6 +154,13 @@ def frontend_reminder():
         items = res["items"]
         pull_requests = ""
 
+        frontend_devs = [ "Lucas Garfield" ]
+        pings = ""
+
+        for name, userid in slack_nicks.items():
+            if name in frontend_devs:
+                pings += f" <@{userid}>"
+
         if len(items) > 0:
             for item in items:
                 print(f"{item['html_url']}")
@@ -162,7 +169,7 @@ def frontend_reminder():
             text = "pull requests have"
             if len(items) == 1:
                 text = "pull request has"
-            slack_notify(f"{len(items)} dependabot {text} been open for more than {days} days:{pull_requests}")
+            slack_notify(f"{len(items)} dependabot {text} been open for more than {days} days:{pull_requests} {pings}")
 
 
 if __name__ == "__main__":
@@ -198,4 +205,4 @@ if __name__ == "__main__":
         send_reminder(components, slack_nicks, date.today().month, message)               # send an overview on the first of the month
 
     if args.frontend is True and date.weekday(date.today()) == 0:                         # send frontend reminders only on Mondays
-        frontend_reminder()
+        frontend_reminder(slack_nicks)
