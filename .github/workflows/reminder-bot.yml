@@ -24,6 +24,7 @@ jobs:
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
+          SLACK_NICKS_KEY: "${{ secrets.SLACK_NICKS_KEY }}"
   monthly:
     if: contains(github.event.schedule, '0 8 1 * *')
     name: Monthly reminder
