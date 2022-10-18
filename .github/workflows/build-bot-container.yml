@@ -18,10 +18,17 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build container
-        run: podman build -t ghcr.io/${{ github.repository }}:latest .
+        run: podman build -t ghcr.io/${{ github.repository }}:latest -t quay.io/${{ github.repository }}:latest .
 
-      - name: Login to container registry
+      - name: Authenticate to GHCR
         run: podman login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
 
-      - name: Push container to registry
+      - name: Authenticate to Quay
+        run: podman login -u ${{ secrets.QUAY_REGISTRY_USER }} -p ${{ secrets.QUAY_REGISTRY_PASSWORD }} quay.io
+
+      - name: Push container to GHCR
         run: podman push ghcr.io/${{ github.repository }}:latest
+
+      # This is needed for centos-bot (downstream) to be able to pull the image
+      - name: Push container to Quay
+        run: podman push quay.io/${{ github.repository }}:latest
