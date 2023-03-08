@@ -145,7 +145,7 @@ def check_pull_request_flags(http, component, pr_id, num_tests):
     elif 'failure' in test_results:
         msg_info(f"Pull request '{pr_id}' has {len(test_results)}/{num_tests} failed tests and therefore cannot be auto-merged.")
     elif 'pending' in test_results:
-        msg_info(f"Some tests are still running, let's try again later")
+        msg_info("Some tests are still running, let's try again later")
     else:
         msg_error("Something is wrong - maybe the amount of tests have changed?")
 
