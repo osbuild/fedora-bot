@@ -9,16 +9,16 @@ from cryptography.fernet import Fernet
 from slack_sdk.webhook import WebhookClient
 
 
-def load_key(keyfile):
+def load_key(keyfile: str):
     """
     Loads the key from the current directory named `key.key`
     """
     return open(keyfile, "rb").read()
 
 
-def decrypt(filename, key):
+def decrypt(filename: str, key: bytes):
     """
-    Given a filename (str) and key (bytes), it decrypts the file and write it
+    Given a filename (str) and key (bytes), it decrypts the file
     """
     f = Fernet(key)
     with open(filename, "rb") as file:
