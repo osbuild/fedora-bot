@@ -154,7 +154,7 @@ def frontend_reminder(slack_nicks):
         items = res["items"]
         pull_requests = ""
 
-        frontend_devs = [ "Lucas Garfield" ]
+        frontend_devs = [ "Lucas Garfield", "Klara Simickova" ]
         pings = ""
 
         for name, userid in slack_nicks.items():
