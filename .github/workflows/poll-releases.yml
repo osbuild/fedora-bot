@@ -1,10 +1,11 @@
-# Poll for new releases in Fedora dist-git and schedule Koji builds and/or update Bodhi
+# Poll for new pull requests in Fedora dist-git auto-merge when green
 name: "Fedora bot"
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
+    # Every 30mins between 8AM and 3PM on Wednesdays
+    - cron: '*/30 8-15 * * 3'
 
 jobs:
   check:
