@@ -317,24 +317,28 @@ def main():
             parser.error(f"Invalid component format, must be PACKAGE:NUM_TESTS : {component_numtests}")
 
         print(f"\n--- {component} ---\n")
-        if args.apikey:
-            msg_info(f"Checking for open pull requests of {component}...")
-            merge_open_pull_requests(args, component, num_tests)
-        else:
-            msg_info("No Fedora account API key supplied - skipping merging of pull requests.")
-
-        if args.user and args.password: # Only check Bodhi if credentials were supplied
-            msg_info(f"Checking for missing updates of '{component}'...")
-            missing_updates = get_missing_updates(component, fedoras)
-
-            if missing_updates:
-                msg_info(f"Found missing updates in Bodhi: {missing_updates}")
-                publish_updates(args, component, missing_updates)
-                msg_ok(f"Tried to update {missing_updates}.")
+        try:
+            if args.apikey:
+                msg_info(f"Checking for open pull requests of {component}...")
+                merge_open_pull_requests(args, component, num_tests)
             else:
-                msg_ok("No releases found with missing updates.")
-        else:
-            msg_info("No Fedora credentials supplied - skipping Bodhi updates.")
+                msg_info("No Fedora account API key supplied - skipping merging of pull requests.")
+
+            if args.user and args.password: # Only check Bodhi if credentials were supplied
+                msg_info(f"Checking for missing updates of '{component}'...")
+                missing_updates = get_missing_updates(component, fedoras)
+
+                if missing_updates:
+                    msg_info(f"Found missing updates in Bodhi: {missing_updates}")
+                    publish_updates(args, component, missing_updates)
+                    msg_ok(f"Tried to update {missing_updates}.")
+                else:
+                    msg_ok("No releases found with missing updates.")
+            else:
+                msg_info("No Fedora credentials supplied - skipping Bodhi updates.")
+        except Exception as error:
+            print(f"Failure in processing component [{component}] - skipping")
+            print(f"Exception: {error=}, {type(error)=}")
 
 
 if __name__ == "__main__":
