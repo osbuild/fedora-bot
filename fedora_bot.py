@@ -3,10 +3,12 @@
 """Just a small bot to take care of Koji builds and Bodhi updates"""
 
 import argparse
-import subprocess
-import sys
 import os
 import re
+import subprocess
+import sys
+import traceback
+
 import pexpect
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -337,9 +339,10 @@ def main():
                     msg_ok("No releases found with missing updates.")
             else:
                 msg_info("No Fedora credentials supplied - skipping Bodhi updates.")
-        except Exception as error:
+        except Exception:
             print(f"Failure in processing component [{component}] - skipping")
-            print(f"Exception: {error=}, {type(error)=}")
+            print("Traceback:")
+            print(traceback.format_exc())
 
 
 if __name__ == "__main__":
