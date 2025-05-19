@@ -158,7 +158,8 @@ def merge_pull_request(http, args, component, pr_id):
 
     req = http.post(f'https://src.fedoraproject.org/api/0/rpms/{component}/pull-request/{pr_id}/merge', headers={'Authorization': f'token {args.apikey}'})
     res = req.json()
-    if res['message'] == "Changes merged!":
+    message = res.get('message')
+    if message == "Changes merged!":
         msg_ok(f"Merged pull request for {component}: {url}")
     else:
         msg_info(res)
