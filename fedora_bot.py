@@ -184,9 +184,12 @@ def merge_open_pull_requests(args, component, num_tests):
     msg_info(f"Found {res['total_requests']} open pull requests for {component}. Starting the merge train...")
 
     for pr in res['requests']:
-        successful_checks = check_pull_request_flags(http, component, pr['id'], num_tests)
-        if successful_checks:
-            merge_pull_request(http, args, component, pr['id'])
+        try:
+            successful_checks = check_pull_request_flags(http, component, pr['id'], num_tests)
+            if successful_checks:
+                merge_pull_request(http, args, component, pr['id'])
+        except RuntimeError as err:
+            msg_info(f"Skipping pull request {pr['id']} for {component} due to error: {err}")
 
 
 def update_bodhi(args, component, fedora):
