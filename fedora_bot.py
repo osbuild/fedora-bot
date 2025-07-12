@@ -6,7 +6,6 @@ import argparse
 import os
 import re
 import subprocess
-import sys
 import traceback
 
 import pexpect
@@ -25,9 +24,9 @@ class fg:  # pylint: disable=too-few-public-methods
 
 
 def msg_error(body):
-    """Print error and exit"""
+    """Print error and raise a RuntimeError"""
     print(f"{fg.ERROR}{fg.BOLD}Error:{fg.RESET} {body}")
-    sys.exit(1)
+    raise RuntimeError(body)
 
 
 def msg_info(body):
