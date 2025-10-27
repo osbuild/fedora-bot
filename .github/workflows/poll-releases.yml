@@ -19,7 +19,7 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v2
       - name: Check for new releases
-        run: python3 fedora_bot.py --user imagebuilder-bot --password "${{ secrets.FEDORA_PASSWORD }}" --apikey "${{ secrets.FEDORA_APIKEY }}" --component osbuild:3 --component osbuild-composer:2 --component koji-osbuild:2 --component cockpit-composer:2 --component image-builder:2 --component cockpit-image-builder:2
+        run: python3 fedora_bot.py --user imagebuilder-bot --password "${{ secrets.FEDORA_PASSWORD }}" --apikey "${{ secrets.FEDORA_APIKEY }}" --component osbuild:3 --component osbuild-composer:2 --component koji-osbuild:2 --component cockpit-composer:2 --component image-builder:2 --component cockpit-image-builder:3
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
