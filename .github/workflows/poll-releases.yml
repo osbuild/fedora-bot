@@ -25,11 +25,11 @@ jobs:
           --password "${{ secrets.FEDORA_PASSWORD }}"
           --apikey "${{ secrets.FEDORA_APIKEY }}"
           --component osbuild:3
-          --component osbuild-composer:2
+          --component osbuild-composer:4
           --component koji-osbuild:2
           --component cockpit-composer:2
-          --component image-builder:2
-          --component cockpit-image-builder:3
+          --component image-builder:4
+          --component cockpit-image-builder:5
         shell: bash
         env:
           SLACK_WEBHOOK_URL: "${{ secrets.SLACK_WEBHOOK_URL }}"
