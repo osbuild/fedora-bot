@@ -185,7 +185,9 @@ def merge_open_pull_requests(args, component, num_tests):
 
     for pr in res['requests']:
         try:
-            successful_checks = check_pull_request_flags(http, component, pr['id'], num_tests)
+            # rawhide is doubling the tests because of ELN
+            expected_tests = 2 * num_tests if pr.get('branch') == 'rawhide' else num_tests
+            successful_checks = check_pull_request_flags(http, component, pr['id'], expected_tests)
             if successful_checks:
                 merge_pull_request(http, args, component, pr['id'])
         except RuntimeError as err:
